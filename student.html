@@ -1,0 +1,505 @@
+<!DOCTYPE html><html>
+<head>
+  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>School Management System</title>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-database-compat.js"></script>
+<style>
+    body {
+  font-family: 'Segoe UI', sans-serif;
+  
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+  background: #f0f2f5;
+  margin: 0;
+}
+    header {
+      background: linear-gradient(90deg, #4CAF50, #2e7d32);
+      color: white;
+      text-align: center;
+      padding: 20px;
+      width:100%;
+      display:fixed;
+    }
+    .container {
+      padding: 20px;
+    }
+    #login-form {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      margin-right:10px;
+      justify-content:center;
+    }
+    h2, h3 {
+      color: #333;
+    }
+  .results-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.results-table th, .results-table td {
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.results-table th {
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+.status-box {
+  margin-top: 20px;
+  padding: 15px;
+  color: white;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 18px;
+}
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    
+    .dashboard-container, .student-container {
+      display: none;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+    .form-section {
+      margin-top: 20px;
+    }
+    .output-box {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+    }
+  button {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
+}
+  </style>
+</head>
+<body>
+  <header> 
+    <h2>School Management System</h2>
+  </header><br>
+
+    <div id="login-form">  
+    <input type="text" id="regNo" placeholder="Enter Registration No"><br>  
+    <select id="user-type">  
+      <option value="admin">Admin</option>  
+      <option value="student">Student</option>  
+    </select><br>  
+    <button onclick="login()">Login</button>  
+    <div id="error-message" style="color:red; display:none">Invalid Credentials!</div>  
+  </div>    <div id="admin-section" style="display:none">
+    
+    <h2>Admin Dashboard</h2>
+      <button onclick="showStudentRegistrationForm()">Register New Student</button>
+      <button onclick="showAttendanceForm()">Mark Attendance</button>
+      <button onclick="showResultsForm()">Upload Results</button>
+      <button onclick="showNotificationsForm()">Send Notifications</button>
+    
+        <div id="student-registration-form" class="form-section" style="display:none;">
+<h4>Register Student</h4>
+<input type="text" id="student-name" placeholder="Student Name"><br>
+<input type="text" id="student-regNo" placeholder="Registration Number"><br>
+<input type="text" id="student-class" placeholder="Class"><br>
+<button onclick="registerStudent()">Register</button>
+</div>    
+
+    
+  <div id="attendance-form" class="form-section" style="display:none;">
+<h4>Mark Attendance</h4>
+<select id="attendance-regNo">
+  <option value="" disabled selected>Select Registration Number</option>
+</select>
+    <input type="date" id="attendance-date"><br>
+<select id="attendance-status">
+  <option value="present">Present</option>
+  <option value="absent">Absent</option>
+</select><br>
+<button onclick="markAttendance()">Mark Attendance</button>
+</div>  
+
+   <div id="results-form" class="form-section" style="display:none;">
+ <h4>Upload Results</h4>
+<select id="results-regNo">
+  <option value="" disabled selected>Select Registration Number</option>
+</select><br>
+  <input type="text" id="subject-name" placeholder="Subject Name"><br>
+<input type="number" id="marks-obtained" placeholder="Marks"><br>
+<button onclick="uploadResults()">Upload Results</button>
+   </div>
+
+       <div id="notification-form" class="form-section" style="display:none;">
+<h4>Send Notification</h4>
+<textarea id="notification-text" placeholder="Type your message..."></textarea><br>
+<button onclick="sendNotification()">Send</button>
+ </div>
+    <button onclick="logout()">Logout</button>
+  </div>
+<div id="student-section" style="display:none">
+    <h3>Student Panel</h3>
+    <button onclick="checkAttendance()">Check Attendance</button>
+    <button onclick="checkResults()">Check Results</button>
+    <button onclick="checkNotifications()">View Notifications</button>
+    <div id="student-output"></div>
+    <button onclick="logout()">Logout</button>
+
+  </div>  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAq-Yxaccz-Ia6o9NSTC4Fm-PM02DbvIt0",
+      authDomain: "otp-verification-cb472.firebaseapp.com",
+      databaseURL: "https://otp-verification-cb472-default-rtdb.firebaseio.com",
+      projectId: "otp-verification-cb472",
+      storageBucket: "otp-verification-cb472.appspot.com", // fixed `.app` to `.com`
+      messagingSenderId: "939280162949",
+      appId: "1:939280162949:web:89b969538a7f7f0e54c9ec"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentUser = null;
+    let currentStudentRegNo = null;
+   function login() {
+  const regNo = document.getElementById("regNo").value.trim();
+  const userType = document.getElementById("user-type").value;
+  const errorMessage = document.getElementById("error-message");
+
+  // Hide any previous error message
+  errorMessage.style.display = "none";
+
+  if (!regNo) {
+    errorMessage.innerText = "Please enter your registration number.";
+    errorMessage.style.display = "block";
+    return;
+  }
+  if (userType === "admin") {
+    if (regNo === "0907") {
+      currentUser = "admin";
+      document.getElementById("login-form").style.display = "none";
+      document.getElementById("admin-section").style.display = "block";
+    } else {
+      errorMessage.innerText = "Invalid admin credentials.";
+      errorMessage.style.display = "block";
+    }
+  } else {
+    db.ref("students/" + regNo).once("value", snapshot => {
+      if (snapshot.exists()) {
+        currentUser = "student";
+        currentStudentRegNo = regNo;
+        document.getElementById("login-form").style.display = "none";
+        document.getElementById("student-section").style.display = "block";
+      } else {
+        errorMessage.innerText = "Invalid student registration number.";
+        errorMessage.style.display = "block";
+      }
+    });
+  }
+}
+
+    function logout() {
+    // Clear user data
+    currentUser = null;
+    currentStudentRegNo = null;
+
+    // Optionally clear from localStorage/sessionStorage if used
+    sessionStorage.clear();
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("currentStudentRegNo");
+
+    // UI Updates
+    document.getElementById("login-form").style.display = "block";
+    document.getElementById("admin-section").style.display = "none";
+    document.getElementById("student-section").style.display = "none";
+    document.getElementById("error-message").style.display = "none";
+
+    // Feedback
+    alert("Logout Successfully.. Visit Again!");
+
+    // Refresh the page
+    location.reload();
+}
+  function showStudentRegistrationForm() {
+      hideAllAdminSections();
+      document.getElementById("student-registration-form").style.display = "block";
+  }
+    function registerStudent() {
+      const name = document.getElementById("student-name").value.trim();
+      const regNo = document.getElementById("student-regNo").value.trim();
+      const studentClass = document.getElementById("student-class").value;
+      if (!name || !regNo || !studentClass) return alert("Please fill all fields.");
+      db.ref("students/" + regNo).once("value", snapshot => {
+        if (snapshot.exists()) {
+          alert("Student already exists.");
+        } else {
+          db.ref("students/" + regNo).set({ name, class: studentClass });
+          alert("Student registered.");
+        }
+      });
+    }
+    
+    function showAttendanceForm() {
+  hideAllAdminSections();
+
+  const regNoSelect = document.getElementById("attendance-regNo");
+  regNoSelect.innerHTML = `<option value="" disabled selected>Select Registration Number</option>`; // Reset options
+
+  db.ref("students").once("value", snapshot => {
+    if (snapshot.exists()) {
+      snapshot.forEach(childSnapshot => {
+        const regNo = childSnapshot.key;
+        regNoSelect.innerHTML += `<option value="${regNo}">${regNo}</option>`;
+      });
+    } else {
+      regNoSelect.innerHTML = `<option disabled>No students found</option>`;
+    }
+  });
+
+  document.getElementById("attendance-form").style.display = "block";
+}
+
+    function markAttendance() {
+  const regNo = document.getElementById("attendance-regNo").value.trim();
+  const date = document.getElementById("attendance-date").value;
+  const status = document.getElementById("attendance-status").value.trim();
+
+  if (!regNo || !date || !status) {
+    return alert("Please fill all fields.");
+  }
+
+  const timestamp = new Date().toISOString();
+
+  // Set data directly at attendance/{regNo}/{date}
+  db.ref(`attendance/${regNo}/${date}`).set({ regNo, date, status, timestamp })
+    .then(() => {
+      alert("Attendance marked.");
+
+      // Reset form fields
+      document.getElementById("attendance-regNo").value = "";
+      document.getElementById("attendance-date").value = "";
+      document.getElementById("attendance-status").value = "";
+    })
+    .catch((error) => {
+      alert("Failed to mark attendance: " + error.message);
+    });
+}
+  
+function showResultsForm() {
+  hideAllAdminSections();
+
+  const regNoSelect = document.getElementById("results-regNo");
+  regNoSelect.innerHTML = `<option value="" disabled selected>Select Registration Number</option>`;
+
+  db.ref("students").once("value", snapshot => {
+    if (snapshot.exists()) {
+      snapshot.forEach(child => {
+        const regNo = child.key;
+        regNoSelect.innerHTML += `<option value="${regNo}">${regNo}</option>`;
+      });
+    } else {
+      regNoSelect.innerHTML = `<option disabled>No students found</option>`;
+    }
+  });
+
+  document.getElementById("results-form").style.display = "block";
+}
+    function uploadResults() {
+      const regNo = document.getElementById("results-regNo").value.trim();
+      const subject = document.getElementById("subject-name").value.trim();
+      const marks = parseInt(document.getElementById("marks-obtained").value);
+      if (!regNo || !subject || isNaN(marks)) return alert("Please fill all fields correctly.");
+      db.ref("results/" + regNo).push({ subject, marks });
+      alert("Result uploaded.");
+    }
+
+  function showNotificationsForm() {
+      hideAllAdminSections();
+      document.getElementById("notification-form").style.display = "block";
+    }
+    function sendNotification() {
+      const note = document.getElementById("notification-text").value.trim();
+      const now = new Date().toLocaleString();
+      db.ref("notifications").push({ message: note, date: now });
+      alert("Notification sent.");
+    }
+
+    function checkAttendance() {
+  const studentRef = db.ref("attendance/" + currentStudentRegNo);
+  const allAttendanceRef = db.ref("attendance");
+
+  // Fetch all attendance dates from all students
+  allAttendanceRef.once("value", allSnapshot => {
+    const allDatesSet = new Set();
+
+    allSnapshot.forEach(studentSnap => {
+      studentSnap.forEach(dateSnap => {
+        allDatesSet.add(dateSnap.key); // Collect unique dates
+      });
+    });
+
+    const allDates = Array.from(allDatesSet).sort(); // Convert to array and sort
+
+    // Now fetch current student's attendance
+    studentRef.once("value", studentSnapshot => {
+      const studentDates = {};
+      studentSnapshot.forEach(child => {
+        const status = child.val().status?.toLowerCase().trim();
+        studentDates[child.key] = status;
+      });
+
+      const records = allDates.map(date => {
+        const status = studentDates[date] || "absent"; // Mark absent if not recorded
+        return { date, status };
+      });
+
+      const total = records.length;
+      const presentRecords = records.filter(r => r.status === "present");
+      const absentRecords = records.filter(r => r.status === "absent");
+
+      const present = presentRecords.length;
+      const absent = absentRecords.length;
+      const percentage = total > 0 ? ((present / total) * 100).toFixed(2) : "0.00";
+
+      let html = `<h4>Attendance Summary</h4>
+                  <table border="1" cellpadding="8" cellspacing="0">
+                    <tr>
+                      <th>Total Days</th>
+                      <th>Present</th>
+                      <th>Absent</th>
+                      <th>Percentage</th>
+                    </tr>
+                    <tr>
+                      <td>${total}</td>
+                      <td>${present}</td>
+                      <td>${absent}</td>
+                      <td>${percentage}%</td>
+                    </tr>
+                  </table>`;
+
+      html += `<h5>Present Dates</h5><ul>${presentRecords.map(r => `<li>${r.date}</li>`).join("")}</ul>`;
+      html += `<h5>Absent Dates</h5><ul>${absentRecords.map(r => `<li>${r.date}</li>`).join("")}</ul>`;
+
+      document.getElementById("student-output").innerHTML = html;
+    });
+  });
+}
+
+
+    function checkResults() {
+  db.ref("results/" + currentStudentRegNo).once("value", snapshot => {
+    const results = [];
+    snapshot.forEach(child => results.push(child.val()));
+
+    let html = "<h4>Results</h4>";
+    html += `<table border="1" cellpadding="8" cellspacing="0">
+               <tr>
+                 <th>Subject</th>
+                 <th>Marks</th>
+                 <th>Status</th>
+               </tr>`;
+
+    let total = 0;
+    let pass = true;
+
+    results.forEach(r => {
+      const isPass = r.marks >= 40;
+      html += `<tr>
+                 <td>${r.subject}</td>
+                 <td>${r.marks}</td>
+                 <td>${isPass ? "Pass" : "Fail"}</td>
+               </tr>`;
+      total += r.marks;
+      if (!isPass) pass = false;
+    });
+
+    const avg = (results.length > 0) ? (total / results.length).toFixed(2) : 0;
+    const overallStatus = pass ? "Completed" : "Promoted";
+
+    html += `<tr>
+               <td><strong>Total</strong></td>
+               <td colspan="2">${total}</td>
+             </tr>
+             <tr>
+               <td><strong>Average</strong></td>
+               <td colspan="2">${avg}</td>
+             </tr>
+             <tr>
+               <td><strong>Overall Status</strong></td>
+               <td colspan="2"><strong>${overallStatus}</strong></td>
+             </tr>
+           </table>`;
+
+    document.getElementById("student-output").innerHTML = html;
+  });
+}
+
+    function checkNotifications() {
+      db.ref("notifications").once("value", snapshot => {
+        const notes = [];
+        snapshot.forEach(child => notes.push(child.val()));
+        let html = "<h4>Notifications</h4><ul>";
+        notes.reverse().forEach(n => html += `<li>${n.date}: ${n.message}</li>`);
+        html += "</ul>";
+        document.getElementById("student-output").innerHTML = html;
+      });
+    }
+  function hideAllAdminSections() {
+      document.getElementById("student-registration-form").style.display = "none";
+      document.getElementById("attendance-form").style.display = "none";
+      document.getElementById("results-form").style.display = "none";
+      document.getElementById("notification-form").style.display = "none";
+    }
+let btn = document.querySelector(".btn");
+
+btn.addEventListener("click", () => {
+  btn.classList.add("clicked");
+
+  setTimeout(() => {
+    btn.classList.add("anim1");
+  }, 300);
+
+  setTimeout(() => {
+    btn.classList.add("anim2");
+  }, 900);
+
+  setTimeout(() => {
+    btn.classList.add("logged-out");
+    btn.querySelector(".btn-text").textContent = "Logged Out";
+  }, 2500);
+});
+  </script></body>
+</html>
